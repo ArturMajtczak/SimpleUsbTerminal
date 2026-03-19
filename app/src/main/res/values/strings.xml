@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Simple USB Terminal</string>
-    <string name="devices">USB Devices</string>
+    <string name="app_name">OnRevolt USB</string>
+    <string name="devices">Detected USB devices</string>
 </resources>

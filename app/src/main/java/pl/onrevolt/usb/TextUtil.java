@@ -1,4 +1,4 @@
-package de.kai_morich.simple_usb_terminal;
+package pl.onrevolt.usb;
 
 import android.text.Editable;
 import android.text.InputType;
