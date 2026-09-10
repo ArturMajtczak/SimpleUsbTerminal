@@ -77,6 +77,8 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
     private boolean pendingNewline = false;
     private String newline = TextUtil.newline_crlf;
 
+    private final LoRaFrameParser loRaFrameParser = new LoRaFrameParser();
+
     public TerminalFragment() {
         mainLooper = new Handler(Looper.getMainLooper());
         broadcastReceiver = new BroadcastReceiver() {
@@ -392,34 +394,57 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
         updateSendBtn(controlLines.sendAllowed ? SendButtonState.Idle : SendButtonState.Disabled);
     }
 
+//    private void receive(ArrayDeque<byte[]> datas) {
+//        SpannableStringBuilder spn = new SpannableStringBuilder();
+//        for (byte[] data : datas) {
+//            if (flowControlFilter != null)
+//                data = flowControlFilter.filter(data);
+//            if (hexEnabled) {
+//                spn.append(TextUtil.toHexString(data)).append('\n');
+//            } else {
+//                String msg = new String(data);
+//                if (newline.equals(TextUtil.newline_crlf) && msg.length() > 0) {
+//                    // don't show CR as ^M if directly before LF
+//                    msg = msg.replace(TextUtil.newline_crlf, TextUtil.newline_lf);
+//                    // special handling if CR and LF come in separate fragments
+//                    if (pendingNewline && msg.charAt(0) == '\n') {
+//                        if(spn.length() >= 2) {
+//                            spn.delete(spn.length() - 2, spn.length());
+//                        } else {
+//                            Editable edt = receiveText.getEditableText();
+//                            if (edt != null && edt.length() >= 2)
+//                                edt.delete(edt.length() - 2, edt.length());
+//                        }
+//                    }
+//                    pendingNewline = msg.charAt(msg.length() - 1) == '\r';
+//                }
+//                spn.append(TextUtil.toCaretString(msg, newline.length() != 0));
+//            }
+//        }
+//        receiveText.append(spn);
+//    }
+
     private void receive(ArrayDeque<byte[]> datas) {
         SpannableStringBuilder spn = new SpannableStringBuilder();
+
         for (byte[] data : datas) {
             if (flowControlFilter != null)
                 data = flowControlFilter.filter(data);
+
             if (hexEnabled) {
                 spn.append(TextUtil.toHexString(data)).append('\n');
-            } else {
-                String msg = new String(data);
-                if (newline.equals(TextUtil.newline_crlf) && msg.length() > 0) {
-                    // don't show CR as ^M if directly before LF
-                    msg = msg.replace(TextUtil.newline_crlf, TextUtil.newline_lf);
-                    // special handling if CR and LF come in separate fragments
-                    if (pendingNewline && msg.charAt(0) == '\n') {
-                        if(spn.length() >= 2) {
-                            spn.delete(spn.length() - 2, spn.length());
-                        } else {
-                            Editable edt = receiveText.getEditableText();
-                            if (edt != null && edt.length() >= 2)
-                                edt.delete(edt.length() - 2, edt.length());
-                        }
-                    }
-                    pendingNewline = msg.charAt(msg.length() - 1) == '\r';
-                }
-                spn.append(TextUtil.toCaretString(msg, newline.length() != 0));
+                continue;
+            }
+
+            java.util.List<String> parsedLines = loRaFrameParser.feed(data);
+            for (String line : parsedLines) {
+                spn.append(line).append('\n');
             }
         }
-        receiveText.append(spn);
+
+        if (spn.length() > 0) {
+            receiveText.append(spn);
+        }
     }
 
     void status(String str) {
